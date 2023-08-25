@@ -12,12 +12,14 @@ use crate::config::AppConfig;
 use crate::handler::notification::RequestHandler;
 use crate::repository::group::{DynGroupRepositoryTrait, GroupRepository};
 use crate::repository::subscriber::{DynSubscriberRepositoryTrait, SubscriberRepository};
+use crate::seed::SeedService;
 use crate::service::group::{DynGroupServiceTrait, GroupService};
 use crate::service::subscriber::{DynSubscriberServiceTrait, SubscriberService};
 
 mod config;
 mod handler;
 mod repository;
+mod seed;
 mod service;
 
 #[tokio::main]
@@ -55,9 +57,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         subscriber_repository,
         group_repository.clone(),
     )) as DynSubscriberServiceTrait;
-    let group_service = Arc::new(GroupService::new(group_repository)) as DynGroupServiceTrait;
+    let group_service =
+        Arc::new(GroupService::new(group_repository.clone())) as DynGroupServiceTrait;
     info!("Services initialized, Initializing Handler");
     let request_handler = RequestHandler::new(subscriber_service, group_service);
+
+    if config.seed {
+        info!("seeding enabled, creating test data...");
+        SeedService::new(group_repository)
+            .seed()
+            .await
+            .expect("unexpected error occurred while seeding application data");
+    }
 
     info!("Service ready for request at {:#?}!", app_url);
     Server::builder()
