@@ -122,6 +122,33 @@ pub mod test {
     }
 
     #[sqlx::test]
+    async fn list_groups_by_sub(pool: PgPool) -> anyhow::Result<()> {
+        let traits = initialize_handler(pool);
+
+        let group1_name = "group1_name";
+        let group1 = traits.group_repository.add_group(group1_name).await?;
+        let group2 = traits.group_repository.add_group("group2_name").await?;
+
+        let sub1_id = 0;
+        traits
+            .subscriber_repository
+            .add_subscriber(sub1_id, &group1)
+            .await?;
+        let sub2_id = 1;
+        traits
+            .subscriber_repository
+            .add_subscriber(sub2_id, &group2)
+            .await?;
+
+        let groups_list = traits.group_service.list_groups_by_sub(sub1_id).await?;
+
+        assert_eq!(groups_list.len(), 1);
+        assert_eq!(groups_list.first().unwrap().name, group1_name);
+
+        Ok(())
+    }
+
+    #[sqlx::test]
     async fn remove_subcriber_from_group_test(pool: PgPool) -> anyhow::Result<()> {
         let traits = initialize_handler(pool);
 

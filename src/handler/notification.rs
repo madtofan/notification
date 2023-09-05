@@ -1,9 +1,9 @@
 use tonic::{Request, Response, Status};
 
 use madtofan_microservice_common::notification::{
-    notification_server::Notification, subscribers_response::Subscriber, AddGroupRequest,
-    AddSubscriberRequest, GetSubscribersRequest, NotificationResponse, RemoveGroupRequest,
-    RemoveSubscriberRequest, SubscribersResponse,
+    groups_response::Group, notification_server::Notification, subscribers_response::Subscriber,
+    AddGroupRequest, AddSubscriberRequest, GetGroupsRequest, GetSubscribersRequest, GroupsResponse,
+    NotificationResponse, RemoveGroupRequest, RemoveSubscriberRequest, SubscribersResponse,
 };
 
 use crate::service::{group::DynGroupServiceTrait, subscriber::DynSubscriberServiceTrait};
@@ -100,5 +100,21 @@ impl Notification for RequestHandler {
             .collect::<Vec<Subscriber>>();
 
         Ok(Response::new(SubscribersResponse { subscribers }))
+    }
+
+    async fn get_groups(
+        &self,
+        request: Request<GetGroupsRequest>,
+    ) -> Result<Response<GroupsResponse>, Status> {
+        let req = request.into_inner();
+
+        let subscriber_entity = self.group_service.list_groups_by_sub(req.user_id).await?;
+
+        let groups = subscriber_entity
+            .into_iter()
+            .map(|sub| sub.into_group_response())
+            .collect::<Vec<Group>>();
+
+        Ok(Response::new(GroupsResponse { groups }))
     }
 }

@@ -59,6 +59,36 @@ pub mod test {
     }
 
     #[sqlx::test]
+    async fn list_groups_by_sub(pool: PgPool) -> anyhow::Result<()> {
+        let traits = initialize_handler(pool);
+
+        let group_1_name = "group_1_name";
+        let group1 = traits.group_repository.add_group(group_1_name).await?;
+
+        let group_2_name = "group_2_name";
+        let group2 = traits.group_repository.add_group(group_2_name).await?;
+
+        let sub_1_id = 0;
+        traits
+            .subscriber_repository
+            .add_subscriber(sub_1_id, &group1)
+            .await?;
+
+        let sub_2_id = 1;
+        traits
+            .subscriber_repository
+            .add_subscriber(sub_2_id, &group2)
+            .await?;
+
+        let group_list = traits.group_repository.list_groups_by_sub(sub_1_id).await?;
+
+        assert_eq!(group_list.len(), 1);
+        assert_eq!(group_list.first().unwrap().name, group_1_name);
+
+        Ok(())
+    }
+
+    #[sqlx::test]
     async fn list_subs_by_group_test(pool: PgPool) -> anyhow::Result<()> {
         let traits = initialize_handler(pool);
 
