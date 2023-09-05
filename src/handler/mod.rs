@@ -5,7 +5,7 @@ pub mod test {
     use std::sync::Arc;
 
     use madtofan_microservice_common::notification::{
-        notification_server::Notification, AddGroupRequest, AddSubscriberRequest,
+        notification_server::Notification, AddGroupRequest, AddSubscriberRequest, GetGroupsRequest,
         GetSubscribersRequest, RemoveGroupRequest, RemoveSubscriberRequest,
     };
     use sqlx::PgPool;
@@ -182,6 +182,40 @@ pub mod test {
 
         assert_eq!(subs_list.len(), 1);
         assert_eq!(subs_list.first().unwrap().user_id, sub1_id);
+
+        Ok(())
+    }
+
+    #[sqlx::test]
+    async fn get_groups_test(pool: PgPool) -> anyhow::Result<()> {
+        let all_traits = initialize_handler(pool);
+
+        let group1_name = "group1_name";
+        let group1 = all_traits.group_repository.add_group(group1_name).await?;
+        let group2 = all_traits.group_repository.add_group("group2_name").await?;
+
+        let sub1_id = 0;
+        all_traits
+            .subscriber_repository
+            .add_subscriber(sub1_id, &group1)
+            .await?;
+        let sub2_id = 1;
+        all_traits
+            .subscriber_repository
+            .add_subscriber(sub2_id, &group2)
+            .await?;
+
+        let request = Request::new(GetGroupsRequest { user_id: sub1_id });
+
+        let groups_list = all_traits
+            .handler
+            .get_groups(request)
+            .await?
+            .into_inner()
+            .groups;
+
+        assert_eq!(groups_list.len(), 1);
+        assert_eq!(groups_list.first().unwrap().name, group1_name);
 
         Ok(())
     }

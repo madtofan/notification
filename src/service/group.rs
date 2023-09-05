@@ -10,6 +10,7 @@ use crate::repository::group::{DynGroupRepositoryTrait, GroupEntity};
 pub trait GroupServiceTrait {
     async fn add_group(&self, name: String) -> ServiceResult<()>;
     async fn remove_group(&self, name: String) -> ServiceResult<Option<GroupEntity>>;
+    async fn list_groups_by_sub(&self, user_id: i64) -> ServiceResult<Vec<GroupEntity>>;
 }
 
 pub type DynGroupServiceTrait = Arc<dyn GroupServiceTrait + Sync + Send>;
@@ -60,5 +61,13 @@ impl GroupServiceTrait for GroupService {
         info!("group successfully removed");
 
         Ok(removed_group)
+    }
+
+    async fn list_groups_by_sub(&self, user_id: i64) -> ServiceResult<Vec<GroupEntity>> {
+        info!("listing group from subscriber {:?}", user_id);
+        let groups = self.repository.list_groups_by_sub(user_id).await?;
+
+        info!("successfully obtained list of groups from subscriber");
+        Ok(groups)
     }
 }
