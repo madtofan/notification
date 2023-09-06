@@ -4,6 +4,7 @@ use madtofan_microservice_common::notification::{
     groups_response::Group, notification_server::Notification, subscribers_response::Subscriber,
     AddGroupRequest, AddSubscriberRequest, GetGroupsRequest, GetSubscribersRequest, GroupsResponse,
     NotificationResponse, RemoveGroupRequest, RemoveSubscriberRequest, SubscribersResponse,
+    VerifyTokenRequest, VerifyTokenResponse,
 };
 
 use crate::service::{group::DynGroupServiceTrait, subscriber::DynSubscriberServiceTrait};
@@ -63,7 +64,9 @@ impl Notification for RequestHandler {
     ) -> Result<Response<NotificationResponse>, Status> {
         let req = request.into_inner();
 
-        self.group_service.add_group(req.name).await?;
+        self.group_service
+            .add_group(req.name, req.admin_email, req.token)
+            .await?;
 
         Ok(Response::new(NotificationResponse {
             message: String::from("Successfully add group!"),
@@ -76,7 +79,9 @@ impl Notification for RequestHandler {
     ) -> Result<Response<NotificationResponse>, Status> {
         let req = request.into_inner();
 
-        self.group_service.remove_group(req.name).await?;
+        self.group_service
+            .remove_group(req.name, req.admin_email)
+            .await?;
 
         Ok(Response::new(NotificationResponse {
             message: String::from("Successfully removed group!"),
@@ -116,5 +121,15 @@ impl Notification for RequestHandler {
             .collect::<Vec<Group>>();
 
         Ok(Response::new(GroupsResponse { groups }))
+    }
+
+    async fn verify_token(
+        &self,
+        request: Request<VerifyTokenRequest>,
+    ) -> Result<Response<VerifyTokenResponse>, Status> {
+        let result = self.group_service.verify_token(request.into_inner()).await?;
+
+        Ok(Response::new(result))
+        todo!()
     }
 }

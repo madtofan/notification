@@ -6,7 +6,11 @@ use crate::repository::group::DynGroupRepositoryTrait;
 
 lazy_static! {
     static ref GROUP_SERVER_1: &'static str = "server_one";
+    static ref GROUP_ADMIN_1: &'static str = "ahmadclab@gmail.com";
+    static ref TOKEN_SERVER_1: &'static str = "server_one_token";
     static ref GROUP_SERVER_2: &'static str = "server_two";
+    static ref GROUP_ADMIN_2: &'static str = "manzainul@gmail.com";
+    static ref TOKEN_SERVER_2: &'static str = "server_two_token";
 }
 
 pub struct SeedService {
@@ -20,7 +24,11 @@ impl SeedService {
 
     pub async fn seed(&self) -> ServiceResult<()> {
         let group_server_one_name = String::from(*GROUP_SERVER_1);
+        let group_admin_one = String::from(*GROUP_ADMIN_1);
+        let token_one = String::from(*TOKEN_SERVER_1);
         let group_server_two_name = String::from(*GROUP_SERVER_2);
+        let group_admin_two = String::from(*GROUP_ADMIN_2);
+        let token_two = String::from(*TOKEN_SERVER_2);
 
         let existing_server_one = self
             .group_repository
@@ -31,12 +39,12 @@ impl SeedService {
             return Ok(());
         }
 
-        self.group_repository
-            .add_group(&group_server_one_name)
-            .await?;
-        self.group_repository
-            .add_group(&group_server_two_name)
-            .await?;
+        // self.group_repository
+        //     .add_group(&group_server_one_name, &group_admin_one, &token_one)
+        //     .await?;
+        // self.group_repository
+        //     .add_group(&group_server_two_name, &group_admin_two, &token_two)
+        //     .await?;
         Ok(())
     }
 }
