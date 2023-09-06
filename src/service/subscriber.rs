@@ -13,7 +13,7 @@ use crate::repository::{
 pub trait SubscriberServiceTrait {
     async fn list_subs_by_group(&self, group_name: String) -> ServiceResult<Vec<SubscriberEntity>>;
     async fn add_subscriber(&self, user_id: i64, group_name: String) -> ServiceResult<()>;
-    async fn remove_subscriber(&self, user_id: i64) -> ServiceResult<()>;
+    async fn remove_subscriber(&self, user_id: i64, group_name: String) -> ServiceResult<()>;
 }
 
 pub type DynSubscriberServiceTrait = Arc<dyn SubscriberServiceTrait + Sync + Send>;
@@ -82,9 +82,9 @@ impl SubscriberServiceTrait for SubscriberService {
         }
     }
 
-    async fn remove_subscriber(&self, user_id: i64) -> ServiceResult<()> {
+    async fn remove_subscriber(&self, user_id: i64, group_name: String) -> ServiceResult<()> {
         self.subscriber_repository
-            .remove_subscriber(user_id)
+            .remove_subscriber(user_id, &group_name)
             .await?;
         Ok(())
     }

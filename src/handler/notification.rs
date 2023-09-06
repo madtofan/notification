@@ -50,7 +50,7 @@ impl Notification for RequestHandler {
         let req = request.into_inner();
 
         self.subscriber_service
-            .remove_subscriber(req.user_id)
+            .remove_subscriber(req.user_id, req.group)
             .await?;
 
         Ok(Response::new(NotificationResponse {
