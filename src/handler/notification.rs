@@ -127,9 +127,9 @@ impl Notification for RequestHandler {
         &self,
         request: Request<VerifyTokenRequest>,
     ) -> Result<Response<VerifyTokenResponse>, Status> {
-        let result = self.group_service.verify_token(request.into_inner()).await?;
+        let req = request.into_inner();
+        let valid = self.group_service.verify_token(req.name, req.token).await?;
 
-        Ok(Response::new(result))
-        todo!()
+        Ok(Response::new(VerifyTokenResponse { valid }))
     }
 }

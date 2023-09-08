@@ -1,11 +1,8 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use madtofan_microservice_common::{
-    errors::{ServiceError, ServiceResult},
-    notification::{VerifyTokenRequest, VerifyTokenResponse},
-};
-use tracing::log::{error, info};
+use madtofan_microservice_common::errors::{ServiceError, ServiceResult};
+use tracing::{error, info};
 
 use crate::repository::group::{DynGroupRepositoryTrait, GroupEntity};
 
@@ -23,8 +20,7 @@ pub trait GroupServiceTrait {
         admin_email: String,
     ) -> ServiceResult<Option<GroupEntity>>;
     async fn list_groups_by_sub(&self, user_id: i64) -> ServiceResult<Vec<GroupEntity>>;
-    async fn verify_token(&self, request: VerifyTokenRequest)
-        -> ServiceResult<VerifyTokenResponse>;
+    async fn verify_token(&self, name: String, token: String) -> ServiceResult<bool>;
 }
 
 pub type DynGroupServiceTrait = Arc<dyn GroupServiceTrait + Sync + Send>;
@@ -105,19 +101,11 @@ impl GroupServiceTrait for GroupService {
         Ok(groups)
     }
 
-    async fn verify_token(
-        &self,
-        request: VerifyTokenRequest,
-    ) -> ServiceResult<VerifyTokenResponse> {
-        let group_option = self.repository.get_group(&request.name).await?;
+    async fn verify_token(&self, name: String, token: String) -> ServiceResult<bool> {
+        let group_option = self.repository.get_group(&name).await?;
         match group_option {
-            Some(group) => Ok(VerifyTokenResponse {
-                valid: group.token.eq(&Some(request.token))
-            })
-            None => Err(ServiceError::NotFound(String::from("group not found")))
+            Some(group) => Ok(group.token.eq(&token)),
+            None => Err(ServiceError::NotFound(String::from("group not found"))),
         }
-        let valid = group.token.eq(&Some(request.token));
-
-        Ok(VerifyTokenResponse { valid })
     }
 }

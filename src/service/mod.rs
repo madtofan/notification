@@ -50,10 +50,16 @@ pub mod test {
         let traits = initialize_handler(pool);
 
         let group_name = "group_name";
+        let admin_email = "admin_email";
+        let token = "token";
 
         traits
             .group_service
-            .add_group(group_name.to_string())
+            .add_group(
+                group_name.to_string(),
+                admin_email.to_string(),
+                token.to_string(),
+            )
             .await?;
 
         let group = traits.group_repository.get_group(group_name).await?;
@@ -68,14 +74,23 @@ pub mod test {
         let traits = initialize_handler(pool);
 
         let group_to_remove_name = "group_to_remove";
+        let group_to_remove_admin_email = "admin_email";
+        let group_to_remove_token = "token";
         traits
             .group_repository
-            .add_group(group_to_remove_name)
+            .add_group(
+                group_to_remove_name,
+                group_to_remove_admin_email,
+                group_to_remove_token,
+            )
             .await?;
 
         let removed_group = traits
             .group_service
-            .remove_group(group_to_remove_name.to_string())
+            .remove_group(
+                group_to_remove_name.to_string(),
+                group_to_remove_admin_email.to_string(),
+            )
             .await?;
 
         assert!(removed_group.is_some());
@@ -96,8 +111,16 @@ pub mod test {
         let traits = initialize_handler(pool);
 
         let group1_name = "group1_name";
-        let group1 = traits.group_repository.add_group(group1_name).await?;
-        let group2 = traits.group_repository.add_group("group2_name").await?;
+        let group1_admin_email = "admin_email";
+        let group1_token = "token";
+        let group1 = traits
+            .group_repository
+            .add_group(group1_name, group1_admin_email, group1_token)
+            .await?;
+        let group2 = traits
+            .group_repository
+            .add_group("group2_name", "admin_email", "token")
+            .await?;
 
         let sub1_id = 0;
         traits
@@ -126,8 +149,14 @@ pub mod test {
         let traits = initialize_handler(pool);
 
         let group1_name = "group1_name";
-        let group1 = traits.group_repository.add_group(group1_name).await?;
-        let group2 = traits.group_repository.add_group("group2_name").await?;
+        let group1 = traits
+            .group_repository
+            .add_group(group1_name, "admin_email", "token")
+            .await?;
+        let group2 = traits
+            .group_repository
+            .add_group("group2_name", "admin_email", "token")
+            .await?;
 
         let sub1_id = 0;
         traits
@@ -153,7 +182,10 @@ pub mod test {
         let traits = initialize_handler(pool);
 
         let group_name = "group_name";
-        let group = traits.group_repository.add_group(group_name).await?;
+        let group = traits
+            .group_repository
+            .add_group(group_name, "admin_email", "token")
+            .await?;
 
         let sub1_id = 0;
         traits
@@ -166,7 +198,10 @@ pub mod test {
             .add_subscriber(sub2_id, &group)
             .await?;
 
-        traits.subscriber_service.remove_subscriber(sub1_id).await?;
+        traits
+            .subscriber_service
+            .remove_subscriber(sub1_id, group_name.to_string())
+            .await?;
         let subs_list = traits
             .subscriber_repository
             .list_subs_by_group(&group)
@@ -174,6 +209,34 @@ pub mod test {
 
         assert_eq!(subs_list.len(), 1);
         assert_eq!(subs_list.first().unwrap().user_id, sub2_id);
+
+        Ok(())
+    }
+
+    #[sqlx::test]
+    async fn verify_token_test(pool: PgPool) -> anyhow::Result<()> {
+        let all_traits = initialize_handler(pool);
+
+        let group_name = "group_name";
+        let token = "token";
+        all_traits
+            .group_repository
+            .add_group(group_name, "admin_email", token)
+            .await?;
+
+        let verify_valid_token = all_traits
+            .group_service
+            .verify_token(group_name.to_string(), token.to_string())
+            .await?;
+
+        assert!(verify_valid_token);
+
+        let verify_invalid_token = all_traits
+            .group_service
+            .verify_token(group_name.to_string(), "invalid_token".to_string())
+            .await?;
+
+        assert!(!verify_invalid_token);
 
         Ok(())
     }

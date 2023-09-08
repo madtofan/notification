@@ -24,11 +24,11 @@ impl SeedService {
 
     pub async fn seed(&self) -> ServiceResult<()> {
         let group_server_one_name = String::from(*GROUP_SERVER_1);
-        let group_admin_one = String::from(*GROUP_ADMIN_1);
-        let token_one = String::from(*TOKEN_SERVER_1);
-        let group_server_two_name = String::from(*GROUP_SERVER_2);
-        let group_admin_two = String::from(*GROUP_ADMIN_2);
-        let token_two = String::from(*TOKEN_SERVER_2);
+        let _group_admin_one = String::from(*GROUP_ADMIN_1);
+        let _token_one = String::from(*TOKEN_SERVER_1);
+        let _group_server_two_name = String::from(*GROUP_SERVER_2);
+        let _group_admin_two = String::from(*GROUP_ADMIN_2);
+        let _token_two = String::from(*TOKEN_SERVER_2);
 
         let existing_server_one = self
             .group_repository

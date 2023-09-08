@@ -6,7 +6,7 @@ pub mod test {
 
     use madtofan_microservice_common::notification::{
         notification_server::Notification, AddGroupRequest, AddSubscriberRequest, GetGroupsRequest,
-        GetSubscribersRequest, RemoveGroupRequest, RemoveSubscriberRequest,
+        GetSubscribersRequest, RemoveGroupRequest, RemoveSubscriberRequest, VerifyTokenRequest,
     };
     use sqlx::PgPool;
     use tonic::Request;
@@ -55,7 +55,10 @@ pub mod test {
         let all_traits = initialize_handler(pool);
 
         let group_name = "group_name";
-        let created_group = all_traits.group_repository.add_group(group_name).await?;
+        let created_group = all_traits
+            .group_repository
+            .add_group(group_name, "admin_email", "token")
+            .await?;
 
         let sub_id = 0;
         let request = Request::new(AddSubscriberRequest {
@@ -78,7 +81,10 @@ pub mod test {
         let all_traits = initialize_handler(pool);
 
         let group_name = "group_name";
-        let group = all_traits.group_repository.add_group(group_name).await?;
+        let group = all_traits
+            .group_repository
+            .add_group(group_name, "admin_email", "token")
+            .await?;
 
         let sub1_id = 0;
         all_traits
@@ -91,7 +97,10 @@ pub mod test {
             .add_subscriber(sub2_id, &group)
             .await?;
 
-        let request = Request::new(RemoveSubscriberRequest { user_id: sub1_id });
+        let request = Request::new(RemoveSubscriberRequest {
+            user_id: sub1_id,
+            group: group_name.to_string(),
+        });
 
         all_traits.handler.remove_subscriber(request).await?;
         let subs_list = all_traits
@@ -113,6 +122,8 @@ pub mod test {
 
         let request = Request::new(AddGroupRequest {
             name: group_name.to_string(),
+            admin_email: "admin_email".to_string(),
+            token: "token".to_string(),
         });
 
         all_traits.handler.add_group(request).await?;
@@ -129,13 +140,15 @@ pub mod test {
         let all_traits = initialize_handler(pool);
 
         let group_to_remove_name = "group_to_remove";
+        let group_to_remove_admin_email = "admin_email";
         all_traits
             .group_repository
-            .add_group(group_to_remove_name)
+            .add_group(group_to_remove_name, group_to_remove_admin_email, "token")
             .await?;
 
         let request = Request::new(RemoveGroupRequest {
             name: group_to_remove_name.to_string(),
+            admin_email: group_to_remove_admin_email.to_string(),
         });
 
         all_traits.handler.remove_group(request).await?;
@@ -155,8 +168,14 @@ pub mod test {
         let all_traits = initialize_handler(pool);
 
         let group1_name = "group1_name";
-        let group1 = all_traits.group_repository.add_group(group1_name).await?;
-        let group2 = all_traits.group_repository.add_group("group2_name").await?;
+        let group1 = all_traits
+            .group_repository
+            .add_group(group1_name, "admin_email", "token")
+            .await?;
+        let group2 = all_traits
+            .group_repository
+            .add_group("group2_name", "admin_email", "token")
+            .await?;
 
         let sub1_id = 0;
         all_traits
@@ -191,8 +210,14 @@ pub mod test {
         let all_traits = initialize_handler(pool);
 
         let group1_name = "group1_name";
-        let group1 = all_traits.group_repository.add_group(group1_name).await?;
-        let group2 = all_traits.group_repository.add_group("group2_name").await?;
+        let group1 = all_traits
+            .group_repository
+            .add_group(group1_name, "admin_email", "token")
+            .await?;
+        let group2 = all_traits
+            .group_repository
+            .add_group("group2_name", "admin_email", "token")
+            .await?;
 
         let sub1_id = 0;
         all_traits
@@ -216,6 +241,36 @@ pub mod test {
 
         assert_eq!(groups_list.len(), 1);
         assert_eq!(groups_list.first().unwrap().name, group1_name);
+
+        Ok(())
+    }
+
+    #[sqlx::test]
+    async fn verify_token_test(pool: PgPool) -> anyhow::Result<()> {
+        let all_traits = initialize_handler(pool);
+
+        let group_name = "group_name";
+        let token = "token";
+        all_traits
+            .group_repository
+            .add_group(group_name, "admin_email", token)
+            .await?;
+
+        let request = Request::new(VerifyTokenRequest {
+            name: group_name.to_string(),
+            token: token.to_string(),
+        });
+
+        let verify_valid_token = all_traits.handler.verify_token(request).await?;
+        assert!(verify_valid_token.into_inner().valid);
+
+        let request = Request::new(VerifyTokenRequest {
+            name: group_name.to_string(),
+            token: "invalid_token".to_string(),
+        });
+
+        let verify_invalid_token = all_traits.handler.verify_token(request).await?;
+        assert!(!verify_invalid_token.into_inner().valid);
 
         Ok(())
     }

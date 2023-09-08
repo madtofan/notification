@@ -33,7 +33,10 @@ pub mod test {
         let traits = initialize_handler(pool);
 
         let group_to_add = "group_to_add";
-        traits.group_repository.add_group(group_to_add).await?;
+        traits
+            .group_repository
+            .add_group(group_to_add, "admin_email", "token")
+            .await?;
 
         let obtained_group = traits.group_repository.get_group(group_to_add).await?;
         assert_eq!(obtained_group.unwrap().name, group_to_add);
@@ -46,10 +49,14 @@ pub mod test {
         let traits = initialize_handler(pool);
 
         let group_to_remove = "group_to_remove";
-        traits.group_repository.add_group(group_to_remove).await?;
+        let group_to_remove_admin_email = "admin_email";
         traits
             .group_repository
-            .remove_group(group_to_remove)
+            .add_group(group_to_remove, group_to_remove_admin_email, "token")
+            .await?;
+        traits
+            .group_repository
+            .remove_group(group_to_remove, group_to_remove_admin_email)
             .await?;
 
         let obtained_group = traits.group_repository.get_group(group_to_remove).await?;
@@ -63,10 +70,16 @@ pub mod test {
         let traits = initialize_handler(pool);
 
         let group_1_name = "group_1_name";
-        let group1 = traits.group_repository.add_group(group_1_name).await?;
+        let group1 = traits
+            .group_repository
+            .add_group(group_1_name, "admin_email", "token")
+            .await?;
 
         let group_2_name = "group_2_name";
-        let group2 = traits.group_repository.add_group(group_2_name).await?;
+        let group2 = traits
+            .group_repository
+            .add_group(group_2_name, "admin_email", "token")
+            .await?;
 
         let sub_1_id = 0;
         traits
@@ -93,10 +106,16 @@ pub mod test {
         let traits = initialize_handler(pool);
 
         let group_1_name = "group_1_name";
-        let group1 = traits.group_repository.add_group(group_1_name).await?;
+        let group1 = traits
+            .group_repository
+            .add_group(group_1_name, "admin_email", "token")
+            .await?;
 
         let group_2_name = "group_2_name";
-        let group2 = traits.group_repository.add_group(group_2_name).await?;
+        let group2 = traits
+            .group_repository
+            .add_group(group_2_name, "admin_email", "token")
+            .await?;
 
         let sub_1_id = 0;
         let sub1 = traits
@@ -126,7 +145,10 @@ pub mod test {
         let traits = initialize_handler(pool);
 
         let group_name = "group_name";
-        let group = traits.group_repository.add_group(group_name).await?;
+        let group = traits
+            .group_repository
+            .add_group(group_name, "admin_email", "token")
+            .await?;
 
         let sub_1_id = 0;
         traits
@@ -142,7 +164,7 @@ pub mod test {
 
         traits
             .subscriber_repository
-            .remove_subscriber(sub_1_id)
+            .remove_subscriber(sub_1_id, group_name)
             .await?;
 
         let subscribers_list = traits
