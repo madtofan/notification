@@ -1,15 +1,17 @@
 pub mod group;
+pub mod message;
 pub mod subscriber;
 
 #[cfg(test)]
 pub mod test {
-    use std::sync::Arc;
+    use std::{sync::Arc, thread, time};
 
     use sqlx::PgPool;
 
     use crate::{
         repository::{
             group::{DynGroupRepositoryTrait, GroupRepository},
+            message::{DynMessageRepositoryTrait, MessageRepository},
             subscriber::{DynSubscriberRepositoryTrait, SubscriberRepository},
         },
         service::{
@@ -18,11 +20,15 @@ pub mod test {
         },
     };
 
+    use super::message::{DynMessageServiceTrait, MessageService};
+
     struct AllTraits {
         subscriber_repository: DynSubscriberRepositoryTrait,
         group_repository: DynGroupRepositoryTrait,
+        message_repository: DynMessageRepositoryTrait,
         subscriber_service: DynSubscriberServiceTrait,
         group_service: DynGroupServiceTrait,
+        message_service: DynMessageServiceTrait,
     }
 
     fn initialize_handler(pool: PgPool) -> AllTraits {
@@ -30,18 +36,24 @@ pub mod test {
             Arc::new(SubscriberRepository::new(pool.clone())) as DynSubscriberRepositoryTrait;
         let group_repository =
             Arc::new(GroupRepository::new(pool.clone())) as DynGroupRepositoryTrait;
+        let message_repository =
+            Arc::new(MessageRepository::new(pool.clone())) as DynMessageRepositoryTrait;
         let subscriber_service = Arc::new(SubscriberService::new(
             subscriber_repository.clone(),
             group_repository.clone(),
         )) as DynSubscriberServiceTrait;
         let group_service =
             Arc::new(GroupService::new(group_repository.clone())) as DynGroupServiceTrait;
+        let message_service =
+            Arc::new(MessageService::new(message_repository.clone())) as DynMessageServiceTrait;
 
         AllTraits {
             subscriber_repository,
             subscriber_service,
             group_repository,
             group_service,
+            message_repository,
+            message_service,
         }
     }
 
@@ -237,6 +249,89 @@ pub mod test {
             .await?;
 
         assert!(!verify_invalid_token);
+
+        Ok(())
+    }
+
+    #[sqlx::test]
+    async fn add_message_test(pool: PgPool) -> anyhow::Result<()> {
+        let all_traits = initialize_handler(pool);
+
+        let message = "test_message";
+        let added_message = all_traits
+            .message_service
+            .add_message(
+                "channel".to_string(),
+                "subject".to_string(),
+                message.to_string(),
+            )
+            .await?;
+
+        assert_eq!(added_message.message, message);
+
+        Ok(())
+    }
+
+    #[sqlx::test]
+    async fn get_messages_test(pool: PgPool) -> anyhow::Result<()> {
+        let all_traits = initialize_handler(pool);
+
+        let channel = "channel1";
+        let channels = vec![channel.to_string()];
+        let message = "test_message";
+
+        all_traits
+            .message_repository
+            .add_message(channel, "subject", "message")
+            .await?;
+        all_traits
+            .message_repository
+            .add_message(channel, "subject", message)
+            .await?;
+
+        let obtained_messages = all_traits
+            .message_service
+            .get_messages(channels, 0, 50)
+            .await?;
+
+        assert_eq!(obtained_messages.len(), 2);
+        assert_eq!(obtained_messages.first().unwrap().message, message);
+
+        Ok(())
+    }
+    #[sqlx::test]
+    async fn clear_messages_test(pool: PgPool) -> anyhow::Result<()> {
+        let all_traits = initialize_handler(pool);
+
+        let channel = "channel1";
+        let channels = vec![channel.to_string()];
+        let message = "test_message";
+        let first_message = all_traits
+            .message_repository
+            .add_message(channel, "subject", "message")
+            .await?;
+
+        let first_message_time = first_message.created_at;
+        let two_seconds = time::Duration::from_millis(2000);
+        thread::sleep(two_seconds);
+
+        all_traits
+            .message_repository
+            .add_message(channel, "subject", message)
+            .await?;
+
+        all_traits
+            .message_service
+            .clear_messages(first_message_time.unix_timestamp() + 1)
+            .await?;
+
+        let left_messages = all_traits
+            .message_repository
+            .get_messages(channels, 0, 50)
+            .await?;
+
+        assert_eq!(left_messages.len(), 1);
+        assert_eq!(left_messages.first().unwrap().message, message);
 
         Ok(())
     }

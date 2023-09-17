@@ -11,9 +11,11 @@ use tracing_subscriber::util::SubscriberInitExt;
 use crate::config::AppConfig;
 use crate::handler::notification::RequestHandler;
 use crate::repository::group::{DynGroupRepositoryTrait, GroupRepository};
+use crate::repository::message::{DynMessageRepositoryTrait, MessageRepository};
 use crate::repository::subscriber::{DynSubscriberRepositoryTrait, SubscriberRepository};
 use crate::seed::SeedService;
 use crate::service::group::{DynGroupServiceTrait, GroupService};
+use crate::service::message::{DynMessageServiceTrait, MessageService};
 use crate::service::subscriber::{DynSubscriberServiceTrait, SubscriberService};
 
 mod config;
@@ -51,7 +53,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app_url = format!("{}:{}", app_host, app_port).parse().unwrap();
     let subscriber_repository =
         Arc::new(SubscriberRepository::new(pg_pool.clone())) as DynSubscriberRepositoryTrait;
-    let group_repository = Arc::new(GroupRepository::new(pg_pool)) as DynGroupRepositoryTrait;
+    let group_repository =
+        Arc::new(GroupRepository::new(pg_pool.clone())) as DynGroupRepositoryTrait;
+    let message_repository = Arc::new(MessageRepository::new(pg_pool)) as DynMessageRepositoryTrait;
     info!("Repositories initialized, Initializing Services");
     let subscriber_service = Arc::new(SubscriberService::new(
         subscriber_repository,
@@ -59,8 +63,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     )) as DynSubscriberServiceTrait;
     let group_service =
         Arc::new(GroupService::new(group_repository.clone())) as DynGroupServiceTrait;
+    let message_service =
+        Arc::new(MessageService::new(message_repository)) as DynMessageServiceTrait;
     info!("Services initialized, Initializing Handler");
-    let request_handler = RequestHandler::new(subscriber_service, group_service);
+    let request_handler = RequestHandler::new(subscriber_service, group_service, message_service);
 
     if config.seed {
         info!("seeding enabled, creating test data...");
