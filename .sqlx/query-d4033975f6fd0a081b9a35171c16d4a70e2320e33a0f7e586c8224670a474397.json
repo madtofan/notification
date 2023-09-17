@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                delete from notification_group \n                where name = $1::varchar\n                returning *\n            ",
+  "query": "\n                delete from notification_group \n                where name = $1::varchar\n                and admin_email = $2::varchar\n                returning *\n            ",
   "describe": {
     "columns": [
       {
@@ -15,17 +15,28 @@
       },
       {
         "ordinal": 2,
+        "name": "admin_email",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "token",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
         "name": "created_at",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 3,
+        "ordinal": 5,
         "name": "updated_at",
         "type_info": "Timestamptz"
       }
     ],
     "parameters": {
       "Left": [
+        "Varchar",
         "Varchar"
       ]
     },
@@ -33,8 +44,10 @@
       false,
       false,
       false,
+      false,
+      false,
       false
     ]
   },
-  "hash": "8537e648ac879ffe0e411d080d7d825f4b9f0df7c2538458fa776221170096e1"
+  "hash": "d4033975f6fd0a081b9a35171c16d4a70e2320e33a0f7e586c8224670a474397"
 }

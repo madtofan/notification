@@ -34,7 +34,11 @@ pub trait SubscriberRepositoryTrait {
         user_id: i64,
         group: &GroupEntity,
     ) -> anyhow::Result<SubscriberEntity>;
-    async fn remove_subscriber(&self, user_id: i64) -> anyhow::Result<Option<SubscriberEntity>>;
+    async fn remove_subscriber(
+        &self,
+        user_id: i64,
+        group_name: &str,
+    ) -> anyhow::Result<Option<SubscriberEntity>>;
     async fn list_subs_by_group(
         &self,
         group: &GroupEntity,
@@ -82,16 +86,22 @@ impl SubscriberRepositoryTrait for SubscriberRepository {
         .context("an unexpected error occured while creating the subscriber")
     }
 
-    async fn remove_subscriber(&self, user_id: i64) -> anyhow::Result<Option<SubscriberEntity>> {
+    async fn remove_subscriber(
+        &self,
+        user_id: i64,
+        group_name: &str,
+    ) -> anyhow::Result<Option<SubscriberEntity>> {
         query_as!(
             SubscriberEntity,
             r#"
                 delete from notification_subscriber 
                 where 
                     user_id = $1::bigint 
+                    and group_id = (select id from notification_group where name = $2::varchar)
                 returning *
             "#,
             user_id,
+            group_name,
         )
         .fetch_optional(&self.pool)
         .await

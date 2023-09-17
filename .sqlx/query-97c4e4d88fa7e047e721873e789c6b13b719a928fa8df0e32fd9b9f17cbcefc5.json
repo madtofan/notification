@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                select\n                    ng.id as id,\n                    ng.name as name,\n                    ng.admin_email as admin_email,\n                    ng.token as token,\n                    ng.created_at as created_at,\n                    ng.updated_at as updated_at\n                from notification_group as ng\n                join notification_subscriber as ns\n                on ng.id = ns.group_id\n                where ns.user_id = $1::bigint\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "admin_email",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "token",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "97c4e4d88fa7e047e721873e789c6b13b719a928fa8df0e32fd9b9f17cbcefc5"
+}

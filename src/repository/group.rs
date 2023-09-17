@@ -13,6 +13,8 @@ pub struct GroupEntity {
     pub created_at: OffsetDateTime,
     pub updated_at: OffsetDateTime,
     pub name: String,
+    pub admin_email: String,
+    pub token: String,
 }
 
 impl GroupEntity {
@@ -24,8 +26,17 @@ impl GroupEntity {
 #[async_trait]
 pub trait GroupRepositoryTrait {
     async fn get_group(&self, name: &str) -> anyhow::Result<Option<GroupEntity>>;
-    async fn add_group(&self, name: &str) -> anyhow::Result<GroupEntity>;
-    async fn remove_group(&self, name: &str) -> anyhow::Result<Option<GroupEntity>>;
+    async fn add_group(
+        &self,
+        name: &str,
+        admin_email: &str,
+        token: &str,
+    ) -> anyhow::Result<GroupEntity>;
+    async fn remove_group(
+        &self,
+        name: &str,
+        admin_email: &str,
+    ) -> anyhow::Result<Option<GroupEntity>>;
     async fn list_groups_by_sub(&self, user_id: i64) -> anyhow::Result<Vec<GroupEntity>>;
 }
 
@@ -51,6 +62,8 @@ impl GroupRepositoryTrait for GroupRepository {
                 select
                     id,
                     name,
+                    admin_email,
+                    token,
                     created_at,
                     updated_at
                 from notification_group
@@ -63,34 +76,51 @@ impl GroupRepositoryTrait for GroupRepository {
         .context("an unexpected error occured while searching for group")
     }
 
-    async fn add_group(&self, name: &str) -> anyhow::Result<GroupEntity> {
+    async fn add_group(
+        &self,
+        name: &str,
+        admin_email: &str,
+        token: &str,
+    ) -> anyhow::Result<GroupEntity> {
         query_as!(
             GroupEntity,
             r#"
                 insert into notification_group (
-                        name
+                        name,
+                        admin_email,
+                        token
                     )
                 values (
-                        $1::varchar
+                        $1::varchar,
+                        $2::varchar,
+                        $3::varchar
                     )
                 returning *
             "#,
             name,
+            admin_email,
+            token,
         )
         .fetch_one(&self.pool)
         .await
         .context("an unexpected error occured while creating the subscription group")
     }
 
-    async fn remove_group(&self, name: &str) -> anyhow::Result<Option<GroupEntity>> {
+    async fn remove_group(
+        &self,
+        name: &str,
+        admin_email: &str,
+    ) -> anyhow::Result<Option<GroupEntity>> {
         query_as!(
             GroupEntity,
             r#"
                 delete from notification_group 
                 where name = $1::varchar
+                and admin_email = $2::varchar
                 returning *
             "#,
             name,
+            admin_email,
         )
         .fetch_optional(&self.pool)
         .await
@@ -104,6 +134,8 @@ impl GroupRepositoryTrait for GroupRepository {
                 select
                     ng.id as id,
                     ng.name as name,
+                    ng.admin_email as admin_email,
+                    ng.token as token,
                     ng.created_at as created_at,
                     ng.updated_at as updated_at
                 from notification_group as ng
